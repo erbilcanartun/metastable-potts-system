@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.misc import derivative
 
-class PottsRenormalizationGroup:
+class qStatePottsSystem:
 
     def __init__(self, state_q):
-
+        
         self.q = state_q
         self.b = 2 # Rescaling factor
         self.d = 3 # Dimension
@@ -51,6 +51,13 @@ class PottsRenormalizationGroup:
             return round(jc, decimal_precision)
 
         self.Jc = critical_point(state_q, 12)
+        
+
+class PottsRenormalizationGroup(qStatePottsSystem):
+
+    def __init__(self, state_q):
+
+        qStatePottsSystem.__init__(self, state_q)
 
 
     def _pderivative(self, function, variable=0, point=[]):
@@ -72,7 +79,7 @@ class PottsRenormalizationGroup:
         emax = np.amax([e1, e2])
         return emax + np.log(np.exp(e1 - emax) + (self.q - 1) * np.exp(e2 - emax))
     
-    def _energy_ab_1(j, h):
+    def _energy_ab_1(self, j, h):
         
         e1 = 4*j + h
         e2 = 4*j
@@ -83,7 +90,7 @@ class PottsRenormalizationGroup:
                              np.exp(e2 - emax) + 
                              (self.q - 1) * np.exp(e3 - emax)) - self._additive_tilda_1(j, h)
     
-    def _energy_bb_1(j, h):
+    def _energy_bb_1(self, j, h):
         
         e1 = 8 * j
         e2 = h
@@ -94,7 +101,7 @@ class PottsRenormalizationGroup:
                              np.exp(e2 - emax) + 
                              (self.q - 2) * np.exp(e3 - emax)) - self._additive_tilda_1(j, h)
     
-    def _energy_bc_1(j, h):
+    def _energy_bc_1(self, j, h):
         
         e1 = 4 * j
         e2 = h
@@ -106,7 +113,7 @@ class PottsRenormalizationGroup:
                              (self.q - 3) * np.exp(e3 - emax)) - self._additive_tilda_1(j, h)
     
     
-    def _recursion_matrix_1(j, h):
+    def _recursion_matrix_1(self, j, h):
     
         T12 = self._pderivative(self._additive_tilda_1, 0, [j, h])
         T22 = self._pderivative(self._energy_ab_1,      0, [j, h])
@@ -124,7 +131,7 @@ class PottsRenormalizationGroup:
                 [0,           T42,  self.eigen * T43]]
     
     
-    def _recursion_matrix_11(j, h):
+    def _recursion_matrix_11(self, j, h):
     
         T12 = (8 * np.exp(8*j + h)) / (np.exp(8*j + h) + self.q - 1)
         T22 = (4 * np.exp(4*j + h)) / (np.exp(4*j + h) + self.q - 1) - T12
@@ -145,7 +152,7 @@ class PottsRenormalizationGroup:
     # Other RG transformations
     # Hamiltonian: J.(delta(Si,Sj)) + H.(delta(Si.a)+delta(Sj.a))
     
-    def _additive_tilda(energy_ab, energy_bb, energy_bc):
+    def _additive_tilda(self, energy_ab, energy_bb, energy_bc):
         Eab = self.m * energy_ab
         
         e1 = 0
@@ -155,7 +162,7 @@ class PottsRenormalizationGroup:
         return emax + np.log(np.exp(e1 - emax) + 
                              (self.q - 1) * np.exp(e2 - emax))
         
-    def _energy_ab(energy_ab, energy_bb, energy_bc):
+    def _energy_ab(self, energy_ab, energy_bb, energy_bc):
         Eab, Ebb, Ebc = self.m * energy_ab, self.m * energy_bb, self.m * energy_bc
         
         e1 = Eab
@@ -167,7 +174,7 @@ class PottsRenormalizationGroup:
                              np.exp(e2 - emax) + 
                              (self.q - 2) * np.exp(e3 - emax)) - self._additive_tilda(energy_ab, energy_bb, energy_bc)
     
-    def _energy_bb(energy_ab, energy_bb, energy_bc):
+    def _energy_bb(self, energy_ab, energy_bb, energy_bc):
         Eab, Ebb, Ebc = self.m * energy_ab, self.m * energy_bb, self.m * energy_bc
         
         e1 = 2 * Eab
@@ -179,7 +186,7 @@ class PottsRenormalizationGroup:
                              np.exp(e2 - emax) + 
                              (self.q - 2) * np.exp(e3 - emax)) - self._additive_tilda(energy_ab, energy_bb, energy_bc)
     
-    def _energy_bc(energy_ab, energy_bb, energy_bc):
+    def _energy_bc(self, energy_ab, energy_bb, energy_bc):
         Eab, Ebb, Ebc = self.m * energy_ab, self.m * energy_bb, self.m * energy_bc
         
         e1 = 2 * Eab
@@ -191,7 +198,7 @@ class PottsRenormalizationGroup:
                              2 * np.exp(e2 - emax) + 
                              (self.q - 3) * np.exp(e3 - emax)) - self._additive_tilda(energy_ab, energy_bb, energy_bc)
     
-    def _recursion_matrix(energy_ab, energy_bb, energy_bc):
+    def _recursion_matrix(self, energy_ab, energy_bb, energy_bc):
 
         Eab, Ebb, Ebc = energy_ab, energy_bb, energy_bc
     
@@ -214,3 +221,28 @@ class PottsRenormalizationGroup:
                 [0,          T22,  T23,  T24],
                 [0,          T32,  T33,  T34],
                 [0,          T42,  T43,  T44]]
+
+    def droplet(self, j_input, h_input, iteration=10):
+        
+        magnetization = []
+        L_results = []
+        
+        Mn = [1, 0, 1, 0]
+    
+        n = 1
+        for k in range(iteration):
+            
+            U = self.neigen * np.dot(self._recursion_matrix_1(j_input, h_input), 1)
+            Eab, Ebb, Ebc = self._energy_ab_1(j_input, h_input), self._energy_bb_1(j_input, h_input), self._energy_bc_1(j_input, h_input)
+            for i in range(n - 1):
+                U = self.neigen *np.dot(self._recursion_matrix(Eab, Ebb, Ebc), U)
+                Eab, Ebb, Ebc = self._energy_ab(Eab, Ebb, Ebc), self._energy_bb(Eab, Ebb, Ebc), self._energy_bc(Eab, Ebb, Ebc)
+            M = np.dot(Mn, U)
+            
+            magnetization.append((M[2] - 1 / self.q) / (1 - 1 / self.q))
+            L_results.append(self.b ** n)
+            
+            n = n + 1
+    
+        return np.array(L_results), np.array(magnetization)
+        
