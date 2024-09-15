@@ -245,4 +245,41 @@ class PottsRenormalizationGroup(qStatePottsSystem):
             n = n + 1
     
         return np.array(L_results), np.array(magnetization)
+
+    def hysteresis(self, j_input, L_input, span):
         
+        h_list = [[], []]
+        density = [[], []]
+        magnetization = [[], []]
+        
+        n = int(np.log2(L_input)) - 1
+        
+        for k in range(2):
+            
+            hi = span[0]
+            while hi <= span[1]:
+                h = hi
+                j = j_input
+                
+                Mn = [[1, 0, 0, 0], [1, 0, 1, 0]]
+            
+                U = self.neigen * np.dot(self._recursion_matrix_1(j, h), 1)
+                Eab, Ebb, Ebc = self._energy_ab_1(j, h), self._energy_bb_1(j, h), self._energy_bc_1(j, h)
+                for i in range(n):
+                    U = self.neigen * np.dot(self._recursion_matrix(Eab, Ebb, Ebc), U)
+                    Eab, Ebb, Ebc = self._energy_ab(Eab, Ebb, Ebc), self._energy_bb(Eab, Ebb, Ebc), self._energy_bc(Eab, Ebb, Ebc)
+                M = np.dot(Mn[k], U)
+    
+                density[k].append(M[1])
+                magnetization[k].append((M[2] - 1/self.q) / (1 - 1/self.q))
+                h_list[k].append(hi)
+                
+                if hi > -0.2 and hi < 0.2:
+                    hi = hi + 0.0001
+                elif hi > -1 and hi < 1:
+                    hi = hi + 0.001
+                else:
+                    hi = hi + 0.01
+    
+        return np.array(h_list), np.array(density), np.array(magnetization)
+            
