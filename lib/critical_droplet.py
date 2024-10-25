@@ -1,5 +1,5 @@
 import numpy as np
-import renormalization
+from lib import renormalization
 
 def critical_droplet_size(r, h_input, qlimit=1000):
     # 1/r is the ratio of T/Tc
