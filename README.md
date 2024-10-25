@@ -90,3 +90,7 @@ The renormalization-group transformations used here leverage the Migdal-Kadanoff
 ## References
 
 1. Artun, E. C., & Berker, A. N. (2021). Metastable Potts droplets. Physical Review E, 103(3), 032102. DOI: 10.1103/PhysRevE.103.032102
+
+## License
+
+This project is licensed under the GNU GPLv3 License. See the [LICENSE](LICENSE) file for details.
